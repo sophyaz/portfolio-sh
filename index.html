@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SOPHIA // OPERATIONS TERMINAL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700;800&family=Syncopate:wght@400;700&family=Major+Mono+Display&display=swap" rel="stylesheet" />
+<style>
+  :root, [data-theme="dark"] {
+    --bg-0: #05070a;
+    --bg-1: #0a0e14;
+    --bg-2: #0f141b;
+    --line: #2a3a4f;
+    --line-bright: #3d5070;
+    --ink: #ffffff;
+    --ink-dim: #ffffff;
+    --ink-faint: #ffffff;
+    --signal: #ff5b1e;
+    --signal-2: #00ffd1;
+    --signal-3: #ffd400;
+    --signal-warn: #ff2d55;
+    --grid-rgb: 60, 80, 110;
+    --scanline-alpha: 0.012;
+    --image-bg: #0f141b;
+    --image-grid-rgb: 60, 80, 110;
+    --panel: rgba(15, 20, 27, 0.5);
+    --panel-strong: rgba(15, 20, 27, 0.6);
+    --panel-soft: rgba(10, 14, 20, 0.4);
+    --hover-tint: rgba(255, 91, 30, 0.06);
+    --hover-tint-soft: rgba(255, 91, 30, 0.04);
+    --hover-tint-faint: rgba(255, 91, 30, 0.03);
+    --hover-tint-card: rgba(255, 91, 30, 0.05);
+  }
+
+  [data-theme="light"] {
+    --bg-0: #f4f5f7;
+    --bg-1: #eceef2;
+    --bg-2: #e2e6ec;
+    --line: #b8c0cc;
+    --line-bright: #8a95a8;
+    --ink: #000000;
+    --ink-dim: #000000;
+    --ink-faint: #000000;
+    --signal: #d63a00;
+    --signal-2: #009b7e;
+    --signal-3: #b89400;
+    --signal-warn: #c01030;
+    --grid-rgb: 150, 160, 175;
+    --scanline-alpha: 0.018;
+    --image-bg: #d8dde4;
+    --image-grid-rgb: 150, 160, 175;
+    --panel: rgba(255, 255, 255, 0.6);
+    --panel-strong: rgba(255, 255, 255, 0.75);
+    --panel-soft: rgba(255, 255, 255, 0.5);
+    --hover-tint: rgba(214, 58, 0, 0.08);
+    --hover-tint-soft: rgba(214, 58, 0, 0.05);
+    --hover-tint-faint: rgba(214, 58, 0, 0.04);
+    --hover-tint-card: rgba(214, 58, 0, 0.06);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { background: var(--bg-0); color: var(--ink); font-family: 'JetBrains Mono', monospace; overflow-x: hidden; }
+  body {
+    background-image:
+      radial-gradient(ellipse at 20% 0%, rgba(255, 91, 30, 0.06), transparent 50%),
+      radial-gradient(ellipse at 80% 100%, rgba(0, 255, 209, 0.04), transparent 50%),
+      linear-gradient(180deg, var(--bg-0) 0%, var(--bg-1) 100%);
+    min-height: 100vh;
+    background-attachment: fixed;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  [data-theme="light"] body {
+    background-image:
+      radial-gradient(ellipse at 20% 0%, rgba(214, 58, 0, 0.04), transparent 50%),
+      radial-gradient(ellipse at 80% 100%, rgba(0, 155, 126, 0.03), transparent 50%),
+      linear-gradient(180deg, var(--bg-0) 0%, var(--bg-1) 100%);
+  }
+
+  /* Grid overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(var(--grid-rgb), 0.18) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(var(--grid-rgb), 0.18) 1px, transparent 1px);
+    background-size: 80px 80px;
+    pointer-events: none;
+    z-index: 1;
+    mask-image: radial-gradient(ellipse at center, black 0%, transparent 80%);
+  }
+
+  /* Scanline */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent 0px,
+      transparent 2px,
+      rgba(255, 255, 255, var(--scanline-alpha)) 2px,
+      rgba(255, 255, 255, var(--scanline-alpha)) 3px
+    );
+    pointer-events: none;
+    z-index: 2;
+  }
+  [data-theme="light"] body::after {
+    background: repeating-linear-gradient(
+      0deg,
+      transparent 0px,
+      transparent 2px,
+      rgba(0, 0, 0, var(--scanline-alpha)) 2px,
+      rgba(0, 0, 0, var(--scanline-alpha)) 3px
+    );
+  }
+
+  .wrap { position: relative; z-index: 3; max-width: 1400px; margin: 0 auto; padding: 0 32px; }
+
+  /* TOP BAR */
+  .topbar {
+    border-bottom: 1px solid var(--line);
+    padding: 14px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+  }
+  .topbar .left, .topbar .right { display: flex; gap: 24px; align-items: center; }
+  .theme-toggle {
+    background: none;
+    border: 1px solid var(--line-bright);
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .theme-toggle:hover {
+    border-color: var(--signal);
+    color: var(--signal);
+    background: var(--hover-tint);
+  }
+  .pulse { width: 8px; height: 8px; background: var(--signal-2); border-radius: 50%; box-shadow: 0 0 12px var(--signal-2); animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.85); } }
+  .blink { animation: blink 1.2s steps(2) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* HERO */
+  .hero {
+    padding: 80px 0 60px;
+    position: relative;
+    border-bottom: 1px solid var(--line);
+  }
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 60px;
+    align-items: end;
+  }
+  .callsign-label {
+    font-size: 11px;
+    letter-spacing: 0.3em;
+    color: var(--signal);
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .callsign-label::before {
+    content: ''; width: 32px; height: 1px; background: var(--signal);
+  }
+  h1 {
+    font-family: 'Syncopate', sans-serif;
+    font-weight: 700;
+    font-size: clamp(48px, 9vw, 128px);
+    letter-spacing: -0.02em;
+    line-height: 0.92;
+    color: var(--ink);
+    text-transform: uppercase;
+  }
+  h1 .accent { color: var(--signal); }
+  h1 .outline {
+    color: transparent;
+    -webkit-text-stroke: 1.5px var(--ink-dim);
+  }
+  .subtitle {
+    margin-top: 28px;
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--ink-dim);
+    max-width: 580px;
+    letter-spacing: 0.02em;
+  }
+  .subtitle strong { color: var(--ink); font-weight: 500; }
+
+  /* Telemetry box */
+  .telemetry {
+    border: 1px solid var(--line);
+    background: var(--panel);
+    backdrop-filter: blur(4px);
+    padding: 20px;
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  .telemetry-header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding-bottom: 12px; border-bottom: 1px dashed var(--line-bright);
+    color: var(--signal); margin-bottom: 14px;
+  }
+  .tel-row {
+    display: flex; justify-content: space-between;
+    padding: 6px 0;
+    color: var(--ink-dim);
+  }
+  .tel-row .val { color: var(--ink); }
+  .tel-row .val.ok { color: var(--signal-2); }
+  .tel-row .val.warn { color: var(--signal-3); }
+
+  /* Bracket corners */
+  .bracket { position: relative; }
+  .bracket::before, .bracket::after {
+    content: '';
+    position: absolute;
+    width: 14px; height: 14px;
+    border: 1px solid var(--signal);
+  }
+  .bracket::before { top: -1px; left: -1px; border-right: none; border-bottom: none; }
+  .bracket::after { bottom: -1px; right: -1px; border-left: none; border-top: none; }
+
+  /* INTERESTS STRIP */
+  .interests {
+    border-bottom: 1px solid var(--line);
+    padding: 28px 0;
+    overflow: hidden;
+  }
+  .interests-inner {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+  .interests-label {
+    font-size: 10px;
+    letter-spacing: 0.3em;
+    color: var(--signal);
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    white-space: nowrap;
+  }
+  .interests-label::before {
+    content: ''; width: 24px; height: 1px; background: var(--signal);
+  }
+  .interests-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    flex: 1;
+  }
+  .interest {
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding: 8px 14px;
+    border: 1px solid var(--line-bright);
+    color: var(--ink);
+    background: var(--panel);
+    transition: all 0.2s ease;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: inherit;
+  }
+  .interest:hover {
+    border-color: var(--signal);
+    color: var(--signal);
+    background: var(--hover-tint);
+  }
+  .interest.active {
+    border-color: var(--signal);
+    color: var(--bg-0);
+    background: var(--signal);
+  }
+  .interest.active .dot { background: var(--bg-0); }
+  .interest .dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--signal-2);
+    transition: background 0.2s;
+  }
+
+  /* SECTION HEADER */
+  .section { padding: 80px 0; border-bottom: 1px solid var(--line); position: relative; }
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 48px;
+    padding-bottom: 16px;
+    border-bottom: 1px dashed var(--line-bright);
+  }
+  .section-num {
+    font-family: 'Major Mono Display', monospace;
+    font-size: 11px;
+    color: var(--signal);
+    letter-spacing: 0.3em;
+  }
+  .section-title {
+    font-family: 'Syncopate', sans-serif;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .section-meta {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+  }
+
+  /* PROJECT GRID */
+  .filter-status {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 20px;
+    border: 1px solid var(--line);
+    border-bottom: none;
+    background: var(--panel-strong);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+  }
+  .filter-status .filter-current { color: var(--signal); }
+  .filter-status .filter-clear {
+    background: none;
+    border: 1px solid var(--line-bright);
+    color: var(--ink-dim);
+    padding: 4px 10px;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    cursor: pointer;
+    font-family: inherit;
+    text-transform: uppercase;
+    transition: all 0.2s;
+  }
+  .filter-status .filter-clear:hover { color: var(--signal); border-color: var(--signal); }
+  .filter-status.idle .filter-clear { display: none; }
+
+  .projects {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0;
+    border: 1px solid var(--line);
+  }
+  .project {
+    border-right: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    padding: 32px;
+    background: var(--panel-soft);
+    position: relative;
+    transition: background 0.3s ease, opacity 0.3s ease;
+  }
+  .project.hidden { display: none; }
+  /* Border cleanup using CSS-only siblings — works for visible items */
+  .project { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  /* Borders are managed by JS to handle filtered state correctly */
+  .project.no-right { border-right: none; }
+  .project.no-bottom { border-bottom: none; }
+  .project:hover { background: var(--hover-tint-soft); }
+  .project:hover .proj-status { color: var(--signal); }
+
+  .proj-image {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: var(--image-bg);
+    border: 1px solid var(--line-bright);
+    margin-bottom: 24px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .proj-image::before {
+    content: 'IMAGE_FEED';
+    position: absolute;
+    top: 8px; left: 8px;
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: var(--ink);
+    opacity: 0.6;
+    z-index: 2;
+  }
+  .proj-image::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: 
+      linear-gradient(135deg, transparent 49.5%, rgba(255, 91, 30, 0.3) 49.5%, rgba(255, 91, 30, 0.3) 50.5%, transparent 50.5%),
+      repeating-linear-gradient(45deg, transparent 0, transparent 12px, rgba(var(--image-grid-rgb), 0.4) 12px, rgba(var(--image-grid-rgb), 0.4) 13px);
+    pointer-events: none;
+  }
+  [data-theme="light"] .proj-image::after {
+    background: 
+      linear-gradient(135deg, transparent 49.5%, rgba(214, 58, 0, 0.3) 49.5%, rgba(214, 58, 0, 0.3) 50.5%, transparent 50.5%),
+      repeating-linear-gradient(45deg, transparent 0, transparent 12px, rgba(var(--image-grid-rgb), 0.4) 12px, rgba(var(--image-grid-rgb), 0.4) 13px);
+  }
+  .proj-image .placeholder-text {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--ink);
+    opacity: 0.7;
+    z-index: 1;
+    text-align: center;
+    padding: 16px;
+  }
+  .proj-image img { width: 100%; height: 100%; object-fit: cover; position: relative; z-index: 1; }
+  .proj-image.has-image::before,
+  .proj-image.has-image::after { display: none; }
+
+  .proj-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--ink-dim);
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .proj-status { color: var(--signal-2); transition: color 0.3s; }
+  .proj-status.archived { color: var(--ink-dim); }
+  .proj-status.dev { color: var(--signal-3); }
+  .proj-status.live { color: var(--signal-2); }
+
+  .proj-title {
+    font-family: 'Syncopate', sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    line-height: 1.1;
+  }
+  .proj-desc {
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--ink-dim);
+    margin-bottom: 20px;
+  }
+  .proj-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 20px;
+  }
+  .tag {
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    border: 1px solid var(--line-bright);
+    color: var(--ink);
+  }
+  .proj-links {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding-top: 16px;
+    border-top: 1px dashed var(--line-bright);
+  }
+  .proj-link {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border: 1px solid var(--line-bright);
+    background: none;
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+  .proj-link:hover { color: var(--signal); border-color: var(--signal); background: var(--hover-tint); }
+  .proj-link.disabled {
+    color: var(--ink-faint);
+    border-color: var(--line);
+    pointer-events: none;
+    opacity: 0.5;
+  }
+  .proj-link .arrow { transition: transform 0.2s; }
+  .proj-link:hover .arrow { transform: translateX(3px); }
+
+  /* STORY / WRITEUP toggle */
+  .proj-story {
+    margin-top: 16px;
+    padding: 16px;
+    background: var(--hover-tint-faint);
+    border-left: 2px solid var(--signal);
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--ink);
+    display: none;
+  }
+  .proj-story.open { display: block; }
+  .proj-story-label {
+    font-size: 9px; letter-spacing: 0.25em; color: var(--signal);
+    text-transform: uppercase; margin-bottom: 8px;
+  }
+  .story-toggle {
+    font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+    background: none; border: 1px solid var(--line-bright); color: var(--ink-dim);
+    padding: 6px 10px; cursor: pointer; font-family: inherit;
+    transition: all 0.2s;
+  }
+  .story-toggle:hover { color: var(--signal); border-color: var(--signal); }
+
+  /* BUILD LOG (step-by-step gallery for Lego/build projects) */
+  .build-log {
+    margin-top: 16px;
+    padding: 20px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-left: 2px solid var(--signal-2);
+    display: none;
+  }
+  .build-log.open { display: block; }
+  .build-log-label {
+    font-size: 9px; letter-spacing: 0.25em; color: var(--signal-2);
+    text-transform: uppercase; margin-bottom: 14px;
+    display: flex; justify-content: space-between;
+  }
+  .build-log-label .meta { color: var(--ink); opacity: 0.7; }
+  .build-log-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+  }
+  .build-step {
+    border: 1px solid var(--line);
+    background: var(--image-bg);
+    overflow: hidden;
+    position: relative;
+  }
+  .build-step-img {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    background: var(--image-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .build-step-img::before {
+    content: attr(data-step);
+    position: absolute;
+    top: 6px; left: 6px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--signal);
+    background: var(--bg-0);
+    padding: 2px 5px;
+    border: 1px solid var(--line-bright);
+    z-index: 2;
+  }
+  .build-step-img::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(45deg, transparent 0, transparent 8px, rgba(var(--image-grid-rgb), 0.3) 8px, rgba(var(--image-grid-rgb), 0.3) 9px);
+    pointer-events: none;
+  }
+  .build-step-img img {
+    width: 100%; height: 100%; object-fit: cover;
+    position: relative; z-index: 1;
+  }
+  .build-step-img:has(img)::after { display: none; }
+  .build-step-img .ph-text {
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    color: var(--ink);
+    opacity: 0.6;
+    text-align: center;
+    padding: 8px;
+    text-transform: uppercase;
+    z-index: 1;
+  }
+  .build-step-caption {
+    padding: 8px 10px;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    color: var(--ink);
+    border-top: 1px solid var(--line);
+    line-height: 1.4;
+  }
+
+  /* ABOUT */
+  .about-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: start;
+  }
+  .about-text { font-size: 14px; line-height: 1.8; color: var(--ink); }
+  .about-text p { margin-bottom: 20px; }
+  .about-text strong { color: var(--signal); font-weight: 500; }
+  .specs {
+    border: 1px solid var(--line);
+    padding: 24px;
+    background: var(--panel);
+  }
+  .spec-row {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    padding: 10px 0;
+    border-bottom: 1px dashed var(--line);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+  }
+  .spec-row:last-child { border-bottom: none; }
+  .spec-row .label { color: var(--ink-dim); text-transform: uppercase; }
+  .spec-row .value { color: var(--ink); }
+
+  /* CONTACT */
+  .contact-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    border: 1px solid var(--line);
+  }
+  .contact-card {
+    padding: 32px;
+    border-right: 1px solid var(--line);
+    text-decoration: none;
+    color: var(--ink);
+    transition: background 0.3s;
+    position: relative;
+  }
+  .contact-card:last-child { border-right: none; }
+  .contact-card:hover { background: var(--hover-tint-card); }
+  .contact-label {
+    font-size: 10px; letter-spacing: 0.25em;
+    color: var(--signal); text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .contact-value {
+    font-family: 'Syncopate', sans-serif;
+    font-size: 18px; font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+  .contact-card .arrow {
+    position: absolute; top: 32px; right: 32px;
+    color: var(--ink-dim); transition: all 0.2s;
+  }
+  .contact-card:hover .arrow { color: var(--signal); transform: translate(3px, -3px); }
+
+  /* FOOTER */
+  footer {
+    padding: 40px 0;
+    border-top: 1px solid var(--line);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    color: var(--ink-faint);
+    text-transform: uppercase;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .hero-grid { grid-template-columns: 1fr; }
+    .projects { grid-template-columns: 1fr; }
+    .project { border-right: none !important; }
+    .project:nth-last-child(2) { border-bottom: 1px solid var(--line); }
+    .about-grid { grid-template-columns: 1fr; }
+    .contact-grid { grid-template-columns: 1fr; }
+    .contact-card { border-right: none; border-bottom: 1px solid var(--line); }
+    .contact-card:last-child { border-bottom: none; }
+    .topbar { font-size: 9px; flex-wrap: wrap; gap: 12px; }
+    .topbar .left, .topbar .right { gap: 12px; flex-wrap: wrap; }
+    .wrap { padding: 0 16px; }
+  }
+
+  /* Boot animation */
+  @keyframes boot { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .boot { opacity: 0; animation: boot 0.6s ease-out forwards; }
+  .boot-1 { animation-delay: 0.1s; }
+  .boot-2 { animation-delay: 0.25s; }
+  .boot-3 { animation-delay: 0.4s; }
+  .boot-4 { animation-delay: 0.55s; }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- TOP BAR -->
+  <div class="topbar boot boot-1">
+    <div class="left">
+      <span><span class="pulse" style="display:inline-block;vertical-align:middle;margin-right:8px;"></span>SYS::ONLINE</span>
+      <span>NODE_LDN_E1</span>
+      <span id="clock">--:--:-- BST</span>
+    </div>
+    <div class="right">
+      <button id="themeToggle" class="theme-toggle">◐ LIGHT_MODE</button>
+      <span>v2026.04 <span class="blink" style="color:var(--signal);">_</span></span>
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-grid">
+      <div>
+        <div class="callsign-label boot boot-1">PERSONNEL FILE // OPERATOR PROFILE</div>
+        <h1 class="boot boot-2">
+          BUILD<span class="accent">.</span><br />
+          DEPLOY<span class="accent">.</span><br />
+          <span class="outline">LAUNCH<span class="accent" style="-webkit-text-stroke:0;">/</span></span>
+        </h1>
+        <p class="subtitle boot boot-3">
+          <strong>Sophia</strong> // mathematics &amp; actuarial science undergrad at QMUL.
+          Building at the intersection of <strong>robotics, hardware &amp; space</strong>.
+          Currently: BCI middleware for autonomous fleets. Origami parachute systems.
+          MENA-based tech VC due diligence. This terminal logs current operations.
+        </p>
+      </div>
+      <div class="telemetry bracket boot boot-3">
+        <div class="telemetry-header">
+          <span>// LIVE TELEMETRY</span>
+          <span class="blink" style="color:var(--signal-2);">●</span>
+        </div>
+        <div class="tel-row"><span>STATUS</span><span class="val ok">OPERATIONAL</span></div>
+        <div class="tel-row"><span>FOCUS</span><span class="val">DEEP_TECH</span></div>
+        <div class="tel-row"><span>LOCATION</span><span class="val">LONDON, UK</span></div>
+        <div class="tel-row"><span>YEAR</span><span class="val">2 / 3</span></div>
+        <div class="tel-row"><span>OPEN_TO</span><span class="val warn">INTERNSHIPS</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ABOUT -->
+  <section class="section" id="about">
+    <div class="section-head">
+      <div>
+        <div class="section-num">// 01_BIOGRAPHY.LOG</div>
+        <div class="section-title" style="margin-top:8px;">OPERATOR DOSSIER</div>
+      </div>
+      <div class="section-meta">CLEARANCE: PUBLIC</div>
+    </div>
+    <div class="about-grid">
+      <div class="about-text">
+        <p>
+          I'm a second-year mathematician training my quantitative muscle for a long bet on
+          <strong>deep tech</strong>. By day: actuarial models, R, Monte Carlo simulations. By night:
+          EEG signal classification, embedded systems, parachute deployment mechanics.
+        </p>
+        <p>
+          It started with <strong>Lego</strong> endless hours building, breaking, rebuilding.
+          That's where the robotics obsession comes from. Chess sharpened the strategic side.
+          Everything else is just the same impulse scaled up: take parts, make systems, ship.
+        </p>
+        <p>
+          I lead the Recovery Systems team for QMUL's National Rocketry Competition entry
+          designing an origami-inspired deployment mechanism and I work as a research analyst
+          at a <strong>MENA-based tech VC fund</strong>.
+        </p>
+        <p>
+          The current obsession: <strong>Neural Command</strong>, a BCI middleware concept
+          translating human intent into mission commands for autonomous vehicle fleets.
+          Search-and-rescue, orbital robotics, training and coordinating robotic fleets. Long-term: founding in deep tech.
+        </p>
+      </div>
+      <div class="specs bracket">
+        <div class="spec-row"><span class="label">Designation</span><span class="value">Sophia</span></div>
+        <div class="spec-row"><span class="label">Affiliation</span><span class="value">QMUL // BSc Math + Actuarial Sci</span></div>
+        <div class="spec-row"><span class="label">Active Role</span><span class="value">VC Research Analyst</span></div>
+        <div class="spec-row"><span class="label">Lab</span><span class="value">QMUL Aerial Robotics</span></div>
+        <div class="spec-row"><span class="label">Domains</span><span class="value">Robotics / Space / BCI</span></div>
+        <div class="spec-row"><span class="label">Origin</span><span class="value">Lego // Chess</span></div>
+        <div class="spec-row"><span class="label">Toolkit</span><span class="value">Python, R, Arduino, Excel</span></div>
+        <div class="spec-row"><span class="label">Mission</span><span class="value">Found in deep tech</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROJECTS -->
+  <section class="section" id="projects">
+    <div class="section-head">
+      <div>
+        <div class="section-num">// 02_OPERATIONS.MANIFEST</div>
+        <div class="section-title" style="margin-top:8px;">ACTIVE OPERATIONS</div>
+      </div>
+      <div class="section-meta" id="recordCount">RECORDS: 06 // SORTED BY PRIORITY</div>
+    </div>
+
+    <div class="projects" id="projectsGrid">
+
+      <!-- 1: Ford GT40 Mk II Lego Build -->
+      <article class="project" data-tags="lego">
+        <div class="proj-image has-image">
+          <img src="img/gt40-finished.jpeg" alt="Lego Technic Ford GT40 Mk II — finished build" />
+        </div>
+        <div class="proj-meta">
+          <span>LEGO_001 // PERSONAL ARCHIVE</span>
+          <span class="proj-status live">● BUILT</span>
+        </div>
+        <h3 class="proj-title">Ford GT40 Mk II</h3>
+        <p class="proj-desc">
+          Lego Technic recreation of the 1966 Le Mans winner. <strong>800 pieces</strong>,
+          built from scratch with full development breakdown documented step by step.
+          The chassis-up assembly mirrors how I think about hardware: sub-systems first,
+          integration last, every joint earning its place.
+        </p>
+        <div class="proj-tags">
+          <span class="tag">LEGO</span>
+          <span class="tag">TECHNIC</span>
+          <span class="tag">~800_PCS</span>
+          <span class="tag">FORD_GT40</span>
+          <span class="tag">LE_MANS_'66</span>
+        </div>
+        <div class="proj-links">
+          <button class="story-toggle" onclick="toggleStory(this)">+ STORY</button>
+          <button class="story-toggle" onclick="toggleBuildLog(this)">+ BUILD_LOG</button>
+        </div>
+        <div class="proj-story">
+          <div class="proj-story-label">// BUILD NOTES</div>
+          People ask why I still build Lego at 22. The honest answer: it's where my engineering brain learned to think.
+          <br/><br/>
+          The 1966 Ford GT40 Mk II is the car that broke Ferrari at Le Mans. So when I saw the Technic recreation, I had to build it.
+          <br/><br/>
+          800 pieces, chassis-up. What I noticed building it: every sub-system has to work in isolation before you can integrate it.
+          Suspension geometry first, then the drivetrain, then the bodywork. You can't shortcut the order.
+          <br/><br/>
+          Lego is just engineering with the failure cost set to zero. That's why I keep coming back.
+        </div>
+        <div class="build-log">
+          <div class="build-log-label">
+            <span>// DEVELOPMENT BREAKDOWN // STEP-BY-STEP</span>
+            <span class="meta">4 STAGES</span>
+          </div>
+          <div class="build-log-grid">
+            <div class="build-step">
+              <div class="build-step-img" data-step="01">
+                <img src="img/gt40/01.jpg" alt="Ford GT40 Mk II build — step 01" />
+              </div>
+              <div class="build-step-caption">[Caption for step 01]</div>
+            </div>
+            <div class="build-step">
+              <div class="build-step-img" data-step="02">
+                <img src="img/gt40/02.jpg" alt="Ford GT40 Mk II build — step 02" />
+              </div>
+              <div class="build-step-caption">[Caption for step 02]</div>
+            </div>
+            <div class="build-step">
+              <div class="build-step-img" data-step="03">
+                <img src="img/gt40/03.jpg" alt="Ford GT40 Mk II build — step 03" />
+              </div>
+              <div class="build-step-caption">[Caption for step 03]</div>
+            </div>
+            <div class="build-step">
+              <div class="build-step-img" data-step="04">
+                <img src="img/gt40/04.jpg" alt="Ford GT40 Mk II build — step 04" />
+              </div>
+              <div class="build-step-caption">Final assembly // complete</div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- 2: Anti-Brain-Rot Machine -->
+      <article class="project" data-tags="hackathon hardware">
+        <div class="proj-image has-image">
+          <img src="img/bmo-machine.jpg" alt="Anti–Brain Rot Machine — BMO cardboard build" />
+        </div>
+        <div class="proj-meta">
+          <span>OP_005 // HARDWARE HACKATHON</span>
+          <span class="proj-status live">● SHIPPED</span>
+        </div>
+        <h3 class="proj-title">Anti–Brain Rot Machine</h3>
+        <p class="proj-desc">
+          A physical intervention against doomscrolling, housed inside a hand-built
+          cardboard <strong>BMO</strong> from Adventure Time, painted by us from scratch.
+          Form was half the project. Embedded electronics inside a beloved character to
+          make digital wellness feel playful instead of preachy.
+        </p>
+        <div class="proj-tags">
+          <span class="tag">HARDWARE</span>
+          <span class="tag">EMBEDDED</span>
+          <span class="tag">CARDBOARD</span>
+          <span class="tag">BMO</span>
+          <span class="tag">HACKATHON</span>
+        </div>
+        <div class="proj-links">
+          <a href="https://github.com/sophyaz/anti-brain-rot-machine" target="_blank" rel="noopener" class="proj-link">REPO <span class="arrow">→</span></a>
+          <a href="https://www.linkedin.com/posts/sophiayasminh_techbros-internationalwomensday-hackathon-activity-7436706760175820800-I0dk?utm_source=share&utm_medium=member_desktop&rcm=ACoAAD8SFF4B7YReJO7qQ6uSevnys1BErHiq3Cc" target="_blank" rel="noopener" class="proj-link">LINKEDIN <span class="arrow">→</span></a>
+          <button class="story-toggle" onclick="toggleStory(this)">+ STORY</button>
+        </div>
+        <div class="proj-story">
+          <div class="proj-story-label">// LINKEDIN WRITEUP</div>
+          Hardware hackathon. The brief: do something about doomscrolling. Most digital wellness tools take a punitive approach block apps,
+          shame your screen time, lock you out. We wanted to build something that felt like a friend nudging you, not an authority figure
+          scolding you.
+          <br/><br/>
+          So we built the Anti–Brain Rot Machine, and we put it inside <strong>BMO from Adventure Time</strong>. Hand-built from cardboard,
+          painted from scratch, electronics nestled inside. BMO watches you, BMO knows when you've been on TikTok too long, BMO suggests you
+          touch grass. The form factor was at least half the project we wanted the intervention to feel playful, not preachy. You don't get
+          shamed by a beloved cartoon character; you get reminded.
+          <br/><br/>
+          Easily one of the most fun builds I've done. Sometimes the right move with hardware is to make people smile before you make them
+          think.
+        </div>
+      </article>
+
+      <!-- 3: Recovery Systems -->
+      <article class="project" data-tags="space hardware robotics">
+        <div class="proj-image has-image">
+          <img src="img/origami-chute.jpg" alt="Origami parachute recovery system — QMUL Rocketry" />
+        </div>
+        <div class="proj-meta">
+          <span>OP_002 // ROCKETRY</span>
+          <span class="proj-status live">● ACTIVE</span>
+        </div>
+        <h3 class="proj-title">Origami Recovery System</h3>
+        <p class="proj-desc">
+          Recovery Systems lead for QMUL's National Rocketry Competition entry.
+          Designing an origami-inspired parachute deployment mechanism — packing
+          efficiency, controlled unfurl, descent stability.
+        </p>
+        <div class="proj-tags">
+          <span class="tag">AEROSPACE</span>
+          <span class="tag">MECHANICAL</span>
+          <span class="tag">CAD</span>
+          <span class="tag">TEAM_LEAD</span>
+        </div>
+        <div class="proj-links">
+          <button class="story-toggle" onclick="toggleStory(this)">+ STORY</button>
+        </div>
+        <div class="proj-story">
+          <div class="proj-story-label">// PROJECT NOTES</div>
+          Recovery systems on amateur rockets fail more often than you'd think. Tangled lines, late deployment, partial unfurl. The parachute is
+          one of the simplest components in the whole vehicle and one of the hardest to get right under the constraints of a small airframe.
+          <br/><br/>
+          Manufacturing the system:​ We will be buying ripstop waterproof nylon to cut and shape the parachute out of, we will cut it to a 1m diameter.
+          We will then attach kevlar cords via holes, burning the threads to secure it properly, our cords have a 2mm diameter.
+          The parachute will be in the lower fuselage, motor ejection charge pressurises the lower fuselage which causes
+          coupler separation and the parachute will be deployed. Nomex protection is used to protect the parachute from the ejection gases. ​
+          <br/><br/>
+        </div>
+      </article>
+
+      <!-- 4: Nexagen -->
+      <article class="project" data-tags="hackathon deep-tech">
+        <div class="proj-image has-image">
+          <img src="img/nexagen.jpg" alt="Nexagen — AI drug discovery platform" />
+        </div>
+        <div class="proj-meta">
+          <span>OP_004 // BIOTECH AI</span>
+          <span class="proj-status live">● SHIPPED</span>
+        </div>
+        <h3 class="proj-title">Nexagen</h3>
+        <p class="proj-desc">
+          AI-powered drug discovery platform built to reduce dependence on animal testing
+          and unify a fragmented pipeline. Centralises compound screening, prediction, and
+          collaboration into one workflow. Built yesterday at hackathon.
+        </p>
+        <div class="proj-tags">
+          <span class="tag">DRUG_DISCOVERY</span>
+          <span class="tag">AI</span>
+          <span class="tag">BIOTECH</span>
+          <span class="tag">HACKATHON</span>
+          <span class="tag">ETHICS</span>
+        </div>
+        <div class="proj-links">
+          <a href="https://github.com/sophyaz/nexagen" target="_blank" rel="noopener" class="proj-link">REPO <span class="arrow">→</span></a>
+          <a href="https://www.linkedin.com/posts/sophiayasminh_hackathon-drugdiscovery-aiforgood-activity-7454896517921996800-_zZK?utm_source=share&utm_medium=member_desktop&rcm=ACoAAD8SFF4B7YReJO7qQ6uSevnys1BErHiq3Cc" target="_blank" rel="noopener" class="proj-link">LINKEDIN <span class="arrow">→</span></a>
+          <button class="story-toggle" onclick="toggleStory(this)">+ STORY</button>
+        </div>
+        <div class="proj-story">
+          <div class="proj-story-label">// LINKEDIN WRITEUP</div>
+          The drug discovery pipeline is one of the most fragmented workflows in any serious industry. We want to combat that with Nexagen.
+          <br/><br/>
+          Nexagen an AI-powered drug discovery platform that centralises screening, prediction, and collaboration 
+          into a single workflow, and replaces a meaningful chunk of preclinical animal testing with in-silico models.
+          <br/><br/>
+          We built it in a hackathon weekend. We won't end animal testing tomorrow. But the case for moving faster, more humanely, with better
+          tools is overwhelming and somebody has to start.
+          <br/><br/>
+          Big love to my teammates. We got more done in 18 hours than felt physically possible.
+        </div>
+      </article>
+
+      <!-- 5: Neural Command -->
+      <article class="project" data-tags="bci robotics deep-tech">
+        <div class="proj-meta">
+          <span>OP_001 // BCI MIDDLEWARE</span>
+          <span class="proj-status dev">● IN_DEV</span>
+        </div>
+        <h3 class="proj-title">Neural Command</h3>
+        <p class="proj-desc">
+          Hardware-agnostic middleware translating human intent into mission commands
+          for fleets of autonomous robots and drones. Targeting search-and-rescue,
+          orbital robotics, and the training and coordination of robot fleets.
+        </p>
+        <div class="proj-tags">
+          <span class="tag">BCI</span>
+          <span class="tag">PYTHON</span>
+          <span class="tag">MNE</span>
+          <span class="tag">ROBOTICS</span>
+          <span class="tag">SAR</span>
+          <span class="tag">ORBITAL</span>
+        </div>
+        <div class="proj-links">
+          <button class="story-toggle" onclick="toggleStory(this)">+ STORY</button>
+        </div>
+        <div class="proj-story">
+          <div class="proj-story-label">// LINKEDIN WRITEUP</div>
+          Robot and drone fleets have a quiet bottleneck: the operator. Current control schemes: joysticks, mission-planning UIs, even
+          voice, all force a human to translate intent into low-level commands one unit at a time. When you scale to ten, fifty, a hundred
+          autonomous units, the operator becomes the slowest part of the loop. That's a real problem in search-and-rescue, where minutes
+          decide outcomes, and in orbital robotics, where latency to ground-control already costs you.
+          <br/><br/>
+          Neural Command is my attempt at the inverse: a hardware-agnostic middleware layer that translates EEG-derived intent directly into
+          fleet-level mission commands. Think "sweep this search grid", "converge on the heat signature", "regroup at base" issued at the
+          speed of thought, executed autonomously by the fleet.
+          <br/><br/>
+          There's a second use case I'm increasingly excited about: <strong>training robots and drones</strong>. Demonstrating an intended
+          behaviour through neural feedback is far closer to how humans actually teach each other than scripting reward functions or piloting
+          a unit by hand. If middleware like this works, it changes how we onboard autonomous systems, not just how we command them.
+          <br/><br/>
+          Verticals on the radar: search-and-rescue, orbital robotics, robot training. If you work in any of those — or in BCI hardware — I'd
+          love to talk.
+        </div>
+      </article>
+
+      <!-- 6: Let Em Cook -->
+      <article class="project" data-tags="hackathon">
+        <div class="proj-meta">
+          <span>OP_003 // HACKATHON</span>
+          <span class="proj-status live">● SHIPPED</span>
+        </div>
+        <h3 class="proj-title">Let Em Cook</h3>
+        <p class="proj-desc">
+          Receipt-scanning meal suggestion app. Built at hackathon using the Anthropic
+          API, OCR pipeline parses grocery receipts, Claude generates contextual recipes
+          from your actual pantry inventory.
+        </p>
+        <div class="proj-tags">
+          <span class="tag">CLAUDE_API</span>
+          <span class="tag">OCR</span>
+          <span class="tag">HACKATHON</span>
+          <span class="tag">FULL_STACK</span>
+        </div>
+        <div class="proj-links">
+          <a href="https://github.com/sophyaz/let-em-cook" target="_blank" rel="noopener" class="proj-link">REPO <span class="arrow">→</span></a>
+          <button class="story-toggle" onclick="toggleStory(this)">+ STORY</button>
+        </div>
+        <div class="proj-story">
+          <div class="proj-story-label">// LINKEDIN WRITEUP</div>
+          Built at a hackathon in just a day. The premise: most household food waste isn't from people being lazy, it's from a coordination
+          problem. You've got ingredients in the fridge, but you can't think of what to make with what's actually there, so you order in instead,
+          and the ingredients go off.
+          <br/><br/>
+          Let Em Cook is a single-page web app that closes that gap. You tell it what you've got — by typing, snapping a fridge photo, or pasting
+          in a receipt and the Anthropic API generates contextual recipes from that exact inventory.
+          <br/><br/>
+          What I liked about this build: it reframes a behavioural problem as a UX one. You don't need to lecture people about waste; you just
+          need to make the right action the easiest one. 
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section class="section" id="contact">
+    <div class="section-head">
+      <div>
+        <div class="section-num">// 03_COMMS.CHANNEL</div>
+        <div class="section-title" style="margin-top:8px;">ESTABLISH LINK</div>
+      </div>
+      <div class="section-meta">ENCRYPTED // OPEN</div>
+    </div>
+    <div class="contact-grid bracket">
+      <a href="https://github.com/sophyaz" target="_blank" rel="noopener" class="contact-card">
+        <div class="contact-label">CH_01 // CODE</div>
+        <div class="contact-value">GitHub</div>
+        <span class="arrow">↗</span>
+      </a>
+      <a href="https://www.linkedin.com/in/sophiayasminh/" target="_blank" rel="noopener" class="contact-card">
+        <div class="contact-label">CH_02 // PROFILE</div>
+        <div class="contact-value">LinkedIn</div>
+        <span class="arrow">↗</span>
+      </a>
+      <a class="contact-card">
+        <div class="contact-label">CH_03 // DIRECT</div>
+        <div class="contact-value">Email: sophia@hussain.md</div>
+      </a>
+    </div>
+  </section>
+
+  <footer>
+    <span>// END OF TRANSMISSION</span>
+    <span>SOPHIA &middot; LDN &middot; 2026</span>
+    <span class="blink" style="color:var(--signal);">█</span>
+  </footer>
+
+</div>
+
+<script>
+  // Live clock — London time, auto-switches between BST and GMT
+  function updateClock() {
+    const now = new Date();
+    const time = now.toLocaleTimeString('en-GB', {
+      timeZone: 'Europe/London',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+    // Detect whether London is currently in BST or GMT
+    const tzName = new Intl.DateTimeFormat('en-GB', {
+      timeZone: 'Europe/London',
+      timeZoneName: 'short'
+    }).formatToParts(now).find(p => p.type === 'timeZoneName')?.value || 'GMT';
+    const el = document.getElementById('clock');
+    if (el) el.textContent = `${time} ${tzName}`;
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+
+  // Story toggle
+  function toggleStory(btn) {
+    const story = btn.closest('.project').querySelector('.proj-story');
+    const isOpen = story.classList.toggle('open');
+    btn.textContent = isOpen ? '− CLOSE' : '+ STORY';
+  }
+
+  // Build log toggle (step-by-step gallery)
+  function toggleBuildLog(btn) {
+    const log = btn.closest('.project').querySelector('.build-log');
+    const isOpen = log.classList.toggle('open');
+    btn.textContent = isOpen ? '− HIDE_LOG' : '+ BUILD_LOG';
+  }
+
+  // Project border manager (responsive 1/2 col grid)
+  (function() {
+    const projects = Array.from(document.querySelectorAll('.project'));
+    function setBorders() {
+      const cols = window.matchMedia('(max-width: 900px)').matches ? 1 : 2;
+      const n = projects.length;
+      projects.forEach((p, i) => {
+        p.classList.remove('no-right', 'no-bottom');
+        const isRightCol = (cols === 2) && (i % 2 === 1);
+        const isLastRow = cols === 1
+          ? (i === n - 1)
+          : (i >= n - (n % 2 === 0 ? 2 : 1));
+        if (isRightCol) p.classList.add('no-right');
+        if (isLastRow) p.classList.add('no-bottom');
+      });
+    }
+    setBorders();
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(setBorders, 150);
+    });
+  })();
+
+  // Theme toggle (light / dark)
+  (function() {
+    const root = document.documentElement;
+    const btn = document.getElementById('themeToggle');
+    const stored = localStorage.getItem('portfolio-theme');
+    const initial = stored || 'dark';
+    function apply(theme) {
+      root.setAttribute('data-theme', theme);
+      if (btn) btn.textContent = theme === 'dark' ? '◐ LIGHT_MODE' : '◑ DARK_MODE';
+      localStorage.setItem('portfolio-theme', theme);
+    }
+    apply(initial);
+    if (btn) {
+      btn.addEventListener('click', () => {
+        const current = root.getAttribute('data-theme') || 'dark';
+        apply(current === 'dark' ? 'light' : 'dark');
+      });
+    }
+  })();
+</script>
+
+</body>
+</html>
